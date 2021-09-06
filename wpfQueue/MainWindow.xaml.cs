@@ -10,18 +10,20 @@ namespace wpfQueue
 {
     public partial class MainWindow : Window
     {
-        private int intQtdeProcessador = 10;
+        private int intQtdeProcessador = 5;
+
 
         private long lngRealizadoSingle = 1;
         private long lngRealizadoMult = 1;
 
 
 
-
-
         public MainWindow()
         {
             InitializeComponent();
+
+            ProcessaFilaSingleCore();
+            ProcessaFilaMultiCore();
         }
 
 
@@ -30,20 +32,31 @@ namespace wpfQueue
             var limit = MyApp.arrItemsProcessar.Count + 100;
             for (int i = MyApp.arrItemsProcessar.Count + 1; i <= limit; i++)
             {
-                var x = new Random().Next(1, 3);
+                var x = new Random().Next(1, 4);
+
                 enTipoCore tipoDefinir = enTipoCore.Single;
                 if (x >= 2)
                     tipoDefinir = enTipoCore.Multi;
 
-                MyApp.arrItemsProcessar.Add(new FilaItem() { id = i, strJsonConteudo = "", props = DateTime.Now.ToString(), qtdeTentativas = 0, status = enStatus.Pendente, tipo = enTipoFila.tipo1, tipoCore = tipoDefinir });
+
+                enTipoFila tipoFila = enTipoFila.tipo1;
+                switch (x)
+                {
+                    case 1:
+                        tipoFila = enTipoFila.tipo1;
+                        break;
+                    case 2:
+                        tipoFila = enTipoFila.tipo2;
+                        break;
+                    case 3:
+                        tipoFila = enTipoFila.tipo3;
+                        break;
+                    default:
+                        break;
+                }
+
+                MyApp.arrItemsProcessar.Add(new FilaItem() { id = i, strJsonConteudo = "{ x: 1, z: 'asdasdad' }", props = DateTime.Now.ToString(), qtdeTentativas = 0, status = enStatus.Pendente, tipo = tipoFila, tipoCore = tipoDefinir });
             }
-        }
-
-
-        private void btIniciaProcessamento_Click(object sender, RoutedEventArgs e)
-        {
-            ProcessaFilaSingleCore();
-            ProcessaFilaMultiCore();
         }
 
 
@@ -75,7 +88,7 @@ namespace wpfQueue
                 try
                 {
                     foreach (var item in MyApp.filaSingleCore)
-                        lvItensSingleCore.Items.Add("ITEM: " + item.id + " - PROPS: " + item.props + " - QTD:" + item.qtdeTentativas);
+                        lvItensSingleCore.Items.Add($"ITEM: {item.id} - TIPO: {item.tipo.ToString()} - QTD: {item.qtdeTentativas}");
                 }
                 catch
                 {
@@ -97,7 +110,7 @@ namespace wpfQueue
             do
             {
                 if (MyApp.filaSingleCore.Count == 0)
-                    await Task.Run(() => { Thread.Sleep(1000); carregaFilaBancoSingleCore(); });
+                    await Task.Run(() => { Thread.Sleep(500); carregaFilaBancoSingleCore(); });
 
                 if (MyApp.filaSingleCore.Count == 0)
                     continue;
@@ -122,7 +135,7 @@ namespace wpfQueue
                 try
                 {
                     foreach (var item in MyApp.filaMultiCore)
-                        lvItensMultiCore.Items.Add("ITEM: " + item.id + " - PROPS: " + item.props + " - QTD:" + item.qtdeTentativas);
+                        lvItensMultiCore.Items.Add($"ITEM: {item.id} - TIPO: {item.tipo.ToString()} - QTD: {item.qtdeTentativas}");
                 }
                 catch
                 {
@@ -145,7 +158,7 @@ namespace wpfQueue
             do
             {
                 if (MyApp.filaMultiCore.Count == 0)
-                    await Task.Run(() => { Thread.Sleep(1000); carregaFilaBancoMultiCore(); });
+                    await Task.Run(() => { Thread.Sleep(500); carregaFilaBancoMultiCore(); });
 
                 if (MyApp.filaMultiCore.Count == 0)
                     continue;
@@ -154,7 +167,7 @@ namespace wpfQueue
                 for (int i = 1; i <= intQtdeProcessador; i++)
                 {
                     if (intQtdeProcessador > 1)
-                        Thread.Sleep(100);
+                        Thread.Sleep(50);
 
                     tasks.Add(Task.Factory.StartNew(() => { ProcessaItemsFila("M"); }));
                 }
