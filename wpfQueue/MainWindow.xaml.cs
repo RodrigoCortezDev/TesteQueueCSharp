@@ -100,7 +100,7 @@ namespace wpfQueue
         public void carregaFilaBancoSingleCore()
         {
             //Carrega items do banco que forem do tipo SINGLE CORE (envios de nota, cancelamento de nota)
-            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente && x.tipoCore == enTipoCore.Single).ToList();
+            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente && x.tipoCore == enTipoCore.Single).OrderBy(o => o.id).Take(100).ToList();
             arrFila.ForEach(item => { MyApp.filaSingleCore.Enqueue(item); });
         }
 
@@ -148,7 +148,7 @@ namespace wpfQueue
         public void carregaFilaBancoMultiCore()
         {
             //Carrega items do banco que forem do tipo MULTI CORE (Envios de email, processamentos que podem serem feitos desordenados)
-            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente && x.tipoCore == enTipoCore.Multi).ToList();
+            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente && x.tipoCore == enTipoCore.Multi).OrderBy(o => o.id).Take(100).ToList();
             arrFila.ForEach(item => { MyApp.filaMultiCore.Enqueue(item); });
         }
 
