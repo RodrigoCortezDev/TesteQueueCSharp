@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace wpfQueue
 {
-    public enum enTipoFila { tipo1, tipo2, tipo3  };
+    public enum enTipoFila { todos, tipo1, tipo2, tipo3  };
     public enum enStatus {Pendente, Concluido, Erro  };
     public enum enTipoCore {Single, Multi };
 
