@@ -1,0 +1,17 @@
+﻿<Window x:Class="wpfQueue.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:wpfQueue"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="518" Width="699">
+    <Canvas>
+        <ListView x:Name="lvItensSingleCore" Height="197" Width="338" Canvas.Left="10" Canvas.Top="10" />
+        <ListView x:Name="lvItensMultiCore" Height="197" Width="338" Canvas.Left="353" Canvas.Top="10" />
+        <ListView x:Name="lvItensRealizadoSingleCore" Height="214" Width="340" Canvas.Left="10" Canvas.Top="224" />
+        <ListView x:Name="lvItensRealizadoMultiCore" Height="214" Width="340" Canvas.Left="355" Canvas.Top="224" />
+        <TextBlock x:Name="tbRealizadoSingleCore" Canvas.Left="10" Canvas.Top="443" Text="0" TextWrapping="Wrap" Width="57"/>
+        <TextBlock x:Name="tbRealizadoMultiCore" Canvas.Left="355" Canvas.Top="443" Text="0" TextWrapping="Wrap" Width="120"/>
+    </Canvas>
+</Window>
