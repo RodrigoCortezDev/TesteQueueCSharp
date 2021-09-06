@@ -10,7 +10,9 @@ namespace wpfQueue
     {
         public static Queue<FilaItem> filaMultiCore = new Queue<FilaItem>();
         public static Queue<FilaItem> filaSingleCore = new Queue<FilaItem>();
-        public static long IDfilaMultiCore = 1;
-        public static long IDfilaSingleCore = 1;
+
+
+        public static List<FilaItem> arrItemsProcessar = new List<FilaItem>();
+
     }
 }

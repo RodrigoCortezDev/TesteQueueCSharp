@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -9,33 +10,50 @@ namespace wpfQueue
 {
     public partial class MainWindow : Window
     {
-        private int intQtdeProcessador = 5;
+        private int intQtdeProcessador = 10;
+
+        private long lngRealizadoSingle = 1;
+        private long lngRealizadoMult = 1;
+
+
+
 
 
         public MainWindow()
         {
             InitializeComponent();
+        }
 
 
-            //Inicia o Workers
+        private void btCarregaBanco_Click(object sender, RoutedEventArgs e)
+        {
+            var limit = MyApp.arrItemsProcessar.Count + 100;
+            for (int i = MyApp.arrItemsProcessar.Count + 1; i <= limit; i++)
+            {
+                var x = new Random().Next(1, 3);
+                enTipoCore tipoDefinir = enTipoCore.Single;
+                if (x >= 2)
+                    tipoDefinir = enTipoCore.Multi;
+
+                MyApp.arrItemsProcessar.Add(new FilaItem() { id = i, strJsonConteudo = "", props = DateTime.Now.ToString(), qtdeTentativas = 0, status = enStatus.Pendente, tipo = enTipoFila.tipo1, tipoCore = tipoDefinir });
+            }
+        }
+
+
+        private void btIniciaProcessamento_Click(object sender, RoutedEventArgs e)
+        {
             ProcessaFilaSingleCore();
             ProcessaFilaMultiCore();
         }
 
 
-
-
-        #region SINGLE CORE
-        public void ExibeListagemSingleCore()
+        private void btExibeResult_Click(object sender, RoutedEventArgs e)
         {
-            //Substituir por observablecolletion depois
-            lvItensSingleCore.Items.Clear();
+            lvResultado.Items.Clear();
             try
             {
-                foreach (var item in MyApp.filaSingleCore)
-                    lvItensSingleCore.Items.Add("ITEM: " + item.id + " - PROPS: " + item.props + " - QTD:" + item.qtdeTentativas);
-
-                tbRealizadoSingleCore.Text = lvItensRealizadoSingleCore.Items.Count.ToString();
+                foreach (var item in MyApp.arrItemsProcessar)
+                    lvResultado.Items.Add("ITEM: " + item.id + " - PROPS: " + item.props + " - QTD:" + item.qtdeTentativas + " - STATUS: " + item.status.ToString());
             }
             catch
             {
@@ -44,16 +62,33 @@ namespace wpfQueue
 
 
 
+
+
+        #region SINGLE CORE
+
+        public void ExibeListagemSingleCore()
+        {
+            //Substituir por observablecolletion depois
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                lvItensSingleCore.Items.Clear();
+                try
+                {
+                    foreach (var item in MyApp.filaSingleCore)
+                        lvItensSingleCore.Items.Add("ITEM: " + item.id + " - PROPS: " + item.props + " - QTD:" + item.qtdeTentativas);
+                }
+                catch
+                {
+                }
+            }));
+        }
+
+
         public void carregaFilaBancoSingleCore()
         {
             //Carrega items do banco que forem do tipo SINGLE CORE (envios de nota, cancelamento de nota)
-            int x = 30; //new Random().Next(1, 30);
-            while (x >= 0)
-            {
-                MyApp.filaSingleCore.Enqueue(new FilaItem() { id = MyApp.IDfilaSingleCore, tipo = enTipoFila.tipo1, strJsonConteudo = "", props = DateTime.Now.ToString(), status = enStatus.Pendente });
-                MyApp.IDfilaSingleCore++;
-                x--;
-            }
+            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente && x.tipoCore == enTipoCore.Single).ToList();
+            arrFila.ForEach(item => { MyApp.filaSingleCore.Enqueue(item); });
         }
 
 
@@ -62,47 +97,47 @@ namespace wpfQueue
             do
             {
                 if (MyApp.filaSingleCore.Count == 0)
-                    await Task.Run(() => { carregaFilaBancoSingleCore(); });
+                    await Task.Run(() => { Thread.Sleep(1000); carregaFilaBancoSingleCore(); });
+
+                if (MyApp.filaSingleCore.Count == 0)
+                    continue;
 
                 await Task.Run(() => { ProcessaItemsFila("S"); });
 
             } while (true);
         }
+
         #endregion
 
 
 
         #region MULTI CORE
+
         public void ExibeListagemMultiCore()
         {
             //Substituir por observablecolletion depois
-            lvItensMultiCore.Items.Clear();
-            try
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                foreach (var item in MyApp.filaMultiCore)
-                    lvItensMultiCore.Items.Add("ITEM: " + item.id + " - PROPS: " + item.props + " - QTD:" + item.qtdeTentativas);
+                lvItensMultiCore.Items.Clear();
+                try
+                {
+                    foreach (var item in MyApp.filaMultiCore)
+                        lvItensMultiCore.Items.Add("ITEM: " + item.id + " - PROPS: " + item.props + " - QTD:" + item.qtdeTentativas);
+                }
+                catch
+                {
+                }
+            }));
 
-                tbRealizadoMultiCore.Text = lvItensRealizadoMultiCore.Items.Count.ToString();
-            }
-            catch
-            {
-            }
         }
-
 
 
         public void carregaFilaBancoMultiCore()
         {
             //Carrega items do banco que forem do tipo MULTI CORE (Envios de email, processamentos que podem serem feitos desordenados)
-            int x = 30; //new Random().Next(1, 30);
-            while (x >= 0)
-            {
-                MyApp.filaMultiCore.Enqueue(new FilaItem() { id = MyApp.IDfilaMultiCore, tipo = enTipoFila.tipo1, strJsonConteudo = "", props = DateTime.Now.ToString(), status = enStatus.Pendente });
-                MyApp.IDfilaMultiCore++;
-                x--;
-            }
+            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente && x.tipoCore == enTipoCore.Multi).ToList();
+            arrFila.ForEach(item => { MyApp.filaMultiCore.Enqueue(item); });
         }
-
 
 
         public async void ProcessaFilaMultiCore()
@@ -110,8 +145,10 @@ namespace wpfQueue
             do
             {
                 if (MyApp.filaMultiCore.Count == 0)
-                    await Task.Run(() => { carregaFilaBancoMultiCore(); });
+                    await Task.Run(() => { Thread.Sleep(1000); carregaFilaBancoMultiCore(); });
 
+                if (MyApp.filaMultiCore.Count == 0)
+                    continue;
 
                 var tasks = new List<Task>();
                 for (int i = 1; i <= intQtdeProcessador; i++)
@@ -124,7 +161,8 @@ namespace wpfQueue
                 await Task.WhenAll(tasks);
 
             } while (true);
-        } 
+        }
+
         #endregion
 
 
@@ -172,7 +210,7 @@ namespace wpfQueue
                     default:
                         break;
                 }
-                Thread.Sleep(500); //SIMULANDO ALGO DEMORADO
+                Thread.Sleep(200); //SIMULANDO ALGO DEMORADO
 
 
                 //simulando erros aleatórios
@@ -184,21 +222,23 @@ namespace wpfQueue
                 }
 
                 //Atualiza no banco com o resultado do processamento.
-                itemProcessar.status = enStatus.Concluido;
+                MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().status = enStatus.Concluido;
+
 
                 //Atualizando o realizado
                 if (strTipo == "S")
-                    Dispatcher.BeginInvoke(new Action(() => { lvItensRealizadoSingleCore.Items.Add($"ITEM({strTipo}): {itemProcessar.id} - QTD: {itemProcessar.qtdeTentativas}"); }));
+                    Dispatcher.BeginInvoke(new Action(() => { tbRealizadoSingleCore.Text = $"Realizado: {lngRealizadoSingle++} / {MyApp.arrItemsProcessar.Where(x=>x.tipoCore == enTipoCore.Single).ToList().Count}"; }));
                 else if (strTipo == "M")
-                    Dispatcher.BeginInvoke(new Action(() => { lvItensRealizadoMultiCore.Items.Add($"ITEM({strTipo}): {itemProcessar.id} - QTD: {itemProcessar.qtdeTentativas}"); }));
+                    Dispatcher.BeginInvoke(new Action(() => { tbRealizadoMultiCore.Text = $"Realizado: {lngRealizadoMult++} / {MyApp.arrItemsProcessar.Where(x => x.tipoCore == enTipoCore.Multi).ToList().Count}"; }));
 
             }
             catch (Exception ex)
             {
+                itemProcessar.qtdeTentativas++;
 
+                //Recolocando na fila
                 if (itemProcessar.qtdeTentativas <= 3)
                 {
-                    //Recolocando na fila
                     if (strTipo == "S")
                         MyApp.filaSingleCore.Enqueue(itemProcessar);
                     else if (strTipo == "M")
@@ -206,16 +246,23 @@ namespace wpfQueue
                 }
                 else
                 {
-                    //Atuliza banco informando que item falhou
+                    //Atuliza banco informando que item falhou pois ja tentou 3x
+                    MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().status = enStatus.Erro;
+
+
+                    //Atualizando o realizado
+                    if (strTipo == "S")
+                        Dispatcher.BeginInvoke(new Action(() => { tbRealizadoSingleCore.Text = $"Realizado: {lngRealizadoSingle++} / {MyApp.arrItemsProcessar.Where(x => x.tipoCore == enTipoCore.Single).ToList().Count}"; }));
+                    else if (strTipo == "M")
+                        Dispatcher.BeginInvoke(new Action(() => { tbRealizadoMultiCore.Text = $"Realizado: {lngRealizadoMult++} / {MyApp.arrItemsProcessar.Where(x => x.tipoCore == enTipoCore.Multi).ToList().Count}"; }));
                 }
-                itemProcessar.qtdeTentativas++;
             }
             finally
             {
                 if (strTipo == "S")
-                    Dispatcher.BeginInvoke(new Action(() => { ExibeListagemSingleCore(); }));
+                    ExibeListagemSingleCore();
                 else if (strTipo == "M")
-                    Dispatcher.BeginInvoke(new Action(() => { ExibeListagemMultiCore(); }));
+                    ExibeListagemMultiCore();
             }
         }
     }
