@@ -231,7 +231,7 @@ namespace wpfQueue
                 if (x == 3)
                 {
                     itemProcessar.status = enStatus.Erro;
-                    throw new Exception();
+                    throw new Exception("Erro");
                 }
 
                 //Atualiza no banco com o resultado do processamento.
@@ -245,7 +245,7 @@ namespace wpfQueue
                     Dispatcher.BeginInvoke(new Action(() => { tbRealizadoMultiCore.Text = $"Realizado: {lngRealizadoMult++} / {MyApp.arrItemsProcessar.Where(x => x.tipoCore == enTipoCore.Multi).ToList().Count}"; }));
 
             }
-            catch (Exception ex)
+            catch 
             {
                 itemProcessar.qtdeTentativas++;
 
