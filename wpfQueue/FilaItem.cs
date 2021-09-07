@@ -8,7 +8,6 @@ namespace wpfQueue
 {
     public enum enTipoFila { todos, tipo1, tipo2, tipo3  };
     public enum enStatus {Pendente, Concluido, Erro  };
-    public enum enTipoCore {Single, Multi };
 
 
     public class FilaItem
@@ -19,6 +18,5 @@ namespace wpfQueue
         public string props { get; set; }
         public int qtdeTentativas { get; set; }
         public enStatus status { get; set; }
-        public enTipoCore tipoCore { get; set; }
     }
 }

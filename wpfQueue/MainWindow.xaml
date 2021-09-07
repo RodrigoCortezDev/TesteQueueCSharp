@@ -7,19 +7,18 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="605" Width="716">
     <Canvas>
+        <TextBlock Text="Tipo 1" Canvas.Left="10" Canvas.Top="4" TextWrapping="Wrap" FontWeight="Bold" />
+        <TextBlock Text="Tipo 2" Canvas.Left="244" Canvas.Top="4" TextWrapping="Wrap" FontWeight="Bold" />
+        <TextBlock Text="Tipo 3" Canvas.Left="477" Canvas.Top="4" TextWrapping="Wrap" FontWeight="Bold" />
 
-        <TextBlock Canvas.Left="10" Canvas.Top="4" Text="Single Core (fila unica)" TextWrapping="Wrap" FontWeight="Bold"/>
-        <TextBlock Canvas.Left="352" Canvas.Top="4" TextWrapping="Wrap" FontWeight="Bold"><Run Language="pt-br" Text="Multi"/><Run Text=" Core ("/><Run Language="pt-br" Text="Varios ao mesmo tempo"/><Run Text=")"/></TextBlock>
-
-        <ListView x:Name="lvItensSingleCore" Height="143" Width="338" Canvas.Left="10" Canvas.Top="20" />
-        <ListView x:Name="lvItensMultiCore" Height="143" Width="338" Canvas.Left="353" Canvas.Top="20" />
-        <TextBlock x:Name="tbRealizadoSingleCore" Canvas.Left="13" Canvas.Top="168" Text="0" TextWrapping="Wrap" Width="335"/>
-        <TextBlock x:Name="tbRealizadoMultiCore" Canvas.Left="353" Canvas.Top="168" Text="0" TextWrapping="Wrap" Width="338"/>
-        <ListView x:Name="lvResultadoSingle" Height="317" Width="340" Canvas.Left="8" Canvas.Top="230" />
-        <ListView x:Name="lvResultadoMulti" Height="317" Width="340" Canvas.Left="353" Canvas.Top="230" />
+        <ListView x:Name="lvItensTipo1" Height="143" Width="216" Canvas.Left="10" Canvas.Top="20" />
+        <ListView x:Name="lvItensTipo2" Height="143" Width="216" Canvas.Left="244" Canvas.Top="20" />
+        <ListView x:Name="lvItensTipo3" Height="143" Width="216" Canvas.Left="477" Canvas.Top="20" />
+        <ListView x:Name="lvResultadoMulti" Height="317" Width="683" Canvas.Left="10" Canvas.Top="230" />
 
         <Button Name="btCarregaBanco" Content="1 - simula Banco" ToolTip="Carrega 100 itens como se fosse bando de dados" Canvas.Left="8" Canvas.Top="195" Width="124" Click="btCarregaBanco_Click" Height="30"/>
         <Button x:Name="btExibeResult" Content="3 - Exibe banco" ToolTip="Apos processar a fila (2 lists de cima vazios) pode mandar ver o resultado." Canvas.Left="137" Canvas.Top="195" Width="134" Click="btExibeResult_Click" Height="30"/>
+
 
 
     </Canvas>

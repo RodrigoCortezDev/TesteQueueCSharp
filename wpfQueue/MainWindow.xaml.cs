@@ -10,26 +10,25 @@ namespace wpfQueue
 {
     public partial class MainWindow : Window
     {
-        private int intQtdeProcessador = 3;
+        private List<KeyValuePair<enTipoFila, int>> arrTipoProcess = new List<KeyValuePair<enTipoFila, int>>();
 
-
-        private long lngRealizadoSingle = 0;
-        private long lngRealizadoMult = 0;
         private DispatcherTimer tmAtulizaListas;
-
 
 
         public MainWindow()
         {
             InitializeComponent();
 
+            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo2, 3));
+            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo3, 3));
+
+
             tmAtulizaListas = new DispatcherTimer();
             tmAtulizaListas.Interval = new TimeSpan(0, 0, 0, 0, 300);
-            tmAtulizaListas.Tick += (e, s) => { tmAtulizaListas.Stop(); ExibeListagemSingleCore(); ExibeListagemMultiCore(); tmAtulizaListas.Start(); };
+            tmAtulizaListas.Tick += (e, s) => { tmAtulizaListas.Stop(); ExibeListagem(); tmAtulizaListas.Start(); };
             tmAtulizaListas.Start();
 
-            Task.Run(() => ProcessaFilaSingleCore());
-            Task.Run(() => ProcessaFilaMultiCore());
+            Task.Run(() => ProcessaFila());
         }
 
 
@@ -39,10 +38,6 @@ namespace wpfQueue
             for (int i = MyApp.arrItemsProcessar.Count + 1; i <= limit; i++)
             {
                 var x = new Random().Next(1, 4);
-
-                enTipoCore tipoDefinir = enTipoCore.Single;
-                if (x >= 2)
-                    tipoDefinir = enTipoCore.Multi;
 
 
                 enTipoFila tipoFila = enTipoFila.tipo1;
@@ -61,21 +56,17 @@ namespace wpfQueue
                         break;
                 }
 
-                MyApp.arrItemsProcessar.Add(new FilaItem() { id = i, strJsonConteudo = "{ x: 1, z: 'asdasdad' }", props = DateTime.Now.ToString(), qtdeTentativas = 0, status = enStatus.Pendente, tipo = tipoFila, tipoCore = tipoDefinir });
+                MyApp.arrItemsProcessar.Add(new FilaItem() { id = i, strJsonConteudo = "{ x: 1, z: 'asdasdad' }", props = DateTime.Now.ToString(), qtdeTentativas = 0, status = enStatus.Pendente, tipo = tipoFila});
             }
         }
 
 
         private void btExibeResult_Click(object sender, RoutedEventArgs e)
         {
-            lvResultadoSingle.Items.Clear();
             lvResultadoMulti.Items.Clear();
             try
             {
-                foreach (var item in MyApp.arrItemsProcessar.Where(x => x.tipoCore == enTipoCore.Single))
-                    lvResultadoSingle.Items.Add($"ITEM: {item.id} - TIPO: {item.tipo} - QTD: {item.qtdeTentativas} - STATUS: {item.status}");
-
-                foreach (var item in MyApp.arrItemsProcessar.Where(x => x.tipoCore == enTipoCore.Multi))
+                foreach (var item in MyApp.arrItemsProcessar)
                     lvResultadoMulti.Items.Add($"ITEM: {item.id} - TIPO: {item.tipo} - QTD: {item.qtdeTentativas} - STATUS: {item.status}");
             }
             catch
@@ -87,18 +78,22 @@ namespace wpfQueue
 
 
 
-        #region SINGLE CORE
 
-        public void ExibeListagemSingleCore()
+        public void ExibeListagem()
         {
             //Substituir por observablecolletion depois
-            lvItensSingleCore.Items.Clear();
+            lvItensTipo1.Items.Clear();
+            lvItensTipo2.Items.Clear();
+            lvItensTipo3.Items.Clear();
             try
             {
-                foreach (var item in MyApp.filaSingleCore)
-                    lvItensSingleCore.Items.Add($"ITEM: {item.id} - TIPO: {item.tipo.ToString()} - QTD: {item.qtdeTentativas}");
+                foreach (var item in MyApp.filas.Where(x => x.Any(a => a.tipo == enTipoFila.tipo1)).FirstOrDefault())
+                    lvItensTipo1.Items.Add($"ITEM: {item.id} - QTD: {item.qtdeTentativas}");
+                foreach (var item in MyApp.filas.Where(x => x.Any(a => a.tipo == enTipoFila.tipo2)).FirstOrDefault())
+                    lvItensTipo2.Items.Add($"ITEM: {item.id} - QTD: {item.qtdeTentativas}");
+                foreach (var item in MyApp.filas.Where(x => x.Any(a => a.tipo == enTipoFila.tipo3)).FirstOrDefault())
+                    lvItensTipo3.Items.Add($"ITEM: {item.id} - QTD: {item.qtdeTentativas}");
 
-                tbRealizadoSingleCore.Text = $"Realizado: {lngRealizadoSingle} / {MyApp.arrItemsProcessar.Where(x => x.tipoCore == enTipoCore.Single).ToList().Count}";
             }
             catch
             {
@@ -106,67 +101,20 @@ namespace wpfQueue
         }
 
 
-        public void carregaFilaBancoSingleCore()
-        {
-            //Carrega items do banco que forem do tipo SINGLE CORE (envios de nota, cancelamento de nota)
-            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente && x.tipoCore == enTipoCore.Single).OrderBy(o => o.id).Take(100).ToList();
-            arrFila.ForEach(item => { MyApp.filaSingleCore.Enqueue(item); });
-        }
-
-
-        public async void ProcessaFilaSingleCore()
-        {
-            do
-            {
-                if (MyApp.filaSingleCore.Count == 0)
-                    await Task.Run(() => { Thread.Sleep(500); carregaFilaBancoSingleCore(); });
-
-                if (MyApp.filaSingleCore.Count == 0)
-                    continue;
-
-                await Task.Run(() => ProcessaItemsFila(ref MyApp.filaSingleCore));
-
-            } while (true);
-        }
-
-        #endregion
-
-
-
-        #region MULTI CORE
-
-        public void ExibeListagemMultiCore()
-        {
-            //Substituir por observablecolletion depois
-            lvItensMultiCore.Items.Clear();
-            try
-            {
-                foreach (var fila in MyApp.filaMultiCore)
-                    foreach (var item in fila)
-                        lvItensMultiCore.Items.Add($"ITEM: {item.id} - TIPO: {item.tipo.ToString()} - QTD: {item.qtdeTentativas}");
-
-                tbRealizadoMultiCore.Text = $"Realizado: {lngRealizadoMult} / {MyApp.arrItemsProcessar.Where(x => x.tipoCore == enTipoCore.Multi).ToList().Count}";
-            }
-            catch
-            {
-            }
-        }
-
-
-        public void carregaFilaBancoMultiCore()
+        public void carregaFilaBanco()
         {
             //Carrega items do banco que forem do tipo MULTI CORE (Envios de email, processamentos que podem serem feitos desordenados)            
-            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente && x.tipoCore == enTipoCore.Multi).OrderBy(o => o.id).Take(200).ToList();
+            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente).OrderBy(o => o.id).Take(500).ToList();
             var arrTipos = arrFila.Select(s => s.tipo).Distinct();
 
             foreach (var tipo in arrTipos)
             {
                 //tenta achar uma lista em uso do mesmo tipo ou alguma vazia
-                Queue<FilaItem> arrFilaTipada = MyApp.filaMultiCore.FirstOrDefault(f => f.Any(a => a.tipo == tipo) || f.Count == 0);
+                Queue<FilaItem> arrFilaTipada = MyApp.filas.FirstOrDefault(f => f.Any(a => a.tipo == tipo) || f.Count == 0);
                 if (arrFilaTipada == null)
                 {
                     arrFilaTipada = new Queue<FilaItem>();
-                    MyApp.filaMultiCore.Add(arrFilaTipada);
+                    MyApp.filas.Add(arrFilaTipada);
                 }
 
                 arrFila.Where(x => x.tipo == tipo).ToList().ForEach(item => { arrFilaTipada.Enqueue(item); });
@@ -174,21 +122,28 @@ namespace wpfQueue
         }
 
 
-        public async void ProcessaFilaMultiCore()
+        public async void ProcessaFila()
         {
             do
             {
                 //Se a soma das qtde restantes das filas for zero ai carrega
-                if (MyApp.filaMultiCore.Sum(x => x.Count()) == 0)
-                    await Task.Run(() => { Thread.Sleep(500); carregaFilaBancoMultiCore(); });
+                if (MyApp.filas.Sum(x => x.Count()) == 0)
+                    await Task.Run(() => { Thread.Sleep(500); carregaFilaBanco(); });
 
-                if (MyApp.filaMultiCore.Sum(x => x.Count()) == 0)
+                if (MyApp.filas.Sum(x => x.Count()) == 0)
                     continue;
 
                 var tasks = new List<Task>();
 
-                MyApp.filaMultiCore.ForEach(fila =>
+                MyApp.filas.ForEach(fila =>
                 {
+                    if (fila.Count == 0)
+                        return;
+
+                    int? intQtdeProcessador = arrTipoProcess.FirstOrDefault(f => f.Key == fila.First().tipo).Value;
+                    if (intQtdeProcessador == null || intQtdeProcessador == 0)
+                        intQtdeProcessador = 1;
+
                     for (int i = 1; i <= intQtdeProcessador; i++)
                     {
                         if (intQtdeProcessador > 1)
@@ -202,7 +157,6 @@ namespace wpfQueue
             } while (true);
         }
 
-        #endregion
 
 
 
@@ -244,14 +198,6 @@ namespace wpfQueue
 
                 //Atualiza no banco com o resultado do processamento.
                 MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().status = enStatus.Concluido;
-
-
-                //Atualizando o realizado
-                if (itemProcessar.tipoCore == enTipoCore.Single)
-                    lngRealizadoSingle++;
-                else if (itemProcessar.tipoCore == enTipoCore.Multi)
-                    lngRealizadoMult++;
-
             }
             catch
             {
@@ -266,18 +212,7 @@ namespace wpfQueue
                 {
                     //Atuliza banco informando que item falhou pois ja tentou 3x
                     MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().status = enStatus.Erro;
-
-
-                    //Atualizando o realizado
-                    if (itemProcessar.tipoCore == enTipoCore.Single)
-                        lngRealizadoSingle++;
-                    else if (itemProcessar.tipoCore == enTipoCore.Multi)
-                        lngRealizadoMult++;
                 }
-            }
-            finally
-            {
-
             }
         }
     }
