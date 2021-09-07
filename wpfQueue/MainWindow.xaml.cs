@@ -19,8 +19,8 @@ namespace wpfQueue
         {
             InitializeComponent();
 
-            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo2, 3));
-            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo3, 3));
+            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo2, 5));
+            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo3, 5));
 
 
             tmAtulizaListas = new DispatcherTimer();
@@ -28,7 +28,15 @@ namespace wpfQueue
             tmAtulizaListas.Tick += (e, s) => { tmAtulizaListas.Stop(); ExibeListagem(); tmAtulizaListas.Start(); };
             tmAtulizaListas.Start();
 
-            Task.Run(() => ProcessaFila());
+
+            if (MyApp.filas.Count == 0)
+            {
+                MyApp.filas.Add(new Tuple<enTipoFila, Queue<FilaItem>>(enTipoFila.tipo1, new Queue<FilaItem>()));
+                MyApp.filas.Add(new Tuple<enTipoFila, Queue<FilaItem>>(enTipoFila.tipo2, new Queue<FilaItem>()));
+                MyApp.filas.Add(new Tuple<enTipoFila, Queue<FilaItem>>(enTipoFila.tipo3, new Queue<FilaItem>()));
+            }
+
+            Task.Run(() => HabilitaFilas());
         }
 
 
@@ -56,7 +64,7 @@ namespace wpfQueue
                         break;
                 }
 
-                MyApp.arrItemsProcessar.Add(new FilaItem() { id = i, strJsonConteudo = "{ x: 1, z: 'asdasdad' }", props = DateTime.Now.ToString(), qtdeTentativas = 0, status = enStatus.Pendente, tipo = tipoFila});
+                MyApp.arrItemsProcessar.Add(new FilaItem() { id = i, strJsonConteudo = "{ x: 1, z: 'asdasdad' }", props = DateTime.Now.ToString(), qtdeTentativas = 0, status = enStatus.Pendente, tipo = tipoFila });
             }
         }
 
@@ -77,7 +85,22 @@ namespace wpfQueue
 
 
 
+        public int getProcessPorTipo(enTipoFila tipo)
+        {
+            try
+            {
+                int intQtdeProcessador = arrTipoProcess.FirstOrDefault(f => f.Key == tipo).Value;
+                if (intQtdeProcessador == 0)
+                    intQtdeProcessador = 1;
 
+                return intQtdeProcessador;
+            }
+            catch
+            {
+                return 1;
+            }
+
+        }
 
         public void ExibeListagem()
         {
@@ -87,11 +110,11 @@ namespace wpfQueue
             lvItensTipo3.Items.Clear();
             try
             {
-                foreach (var item in MyApp.filas.Where(x => x.Any(a => a.tipo == enTipoFila.tipo1)).FirstOrDefault())
+                foreach (var item in MyApp.filas.Where(x => x.Item1 == enTipoFila.tipo1).Select(s => s.Item2).FirstOrDefault())
                     lvItensTipo1.Items.Add($"ITEM: {item.id} - QTD: {item.qtdeTentativas}");
-                foreach (var item in MyApp.filas.Where(x => x.Any(a => a.tipo == enTipoFila.tipo2)).FirstOrDefault())
+                foreach (var item in MyApp.filas.Where(x => x.Item1 == enTipoFila.tipo2).Select(s => s.Item2).FirstOrDefault())
                     lvItensTipo2.Items.Add($"ITEM: {item.id} - QTD: {item.qtdeTentativas}");
-                foreach (var item in MyApp.filas.Where(x => x.Any(a => a.tipo == enTipoFila.tipo3)).FirstOrDefault())
+                foreach (var item in MyApp.filas.Where(x => x.Item1 == enTipoFila.tipo3).Select(s => s.Item2).FirstOrDefault())
                     lvItensTipo3.Items.Add($"ITEM: {item.id} - QTD: {item.qtdeTentativas}");
 
             }
@@ -101,69 +124,84 @@ namespace wpfQueue
         }
 
 
-        public void carregaFilaBanco()
+        public void carregaFilaBanco(enTipoFila enTipoCarregar)
         {
             //Carrega items do banco que forem do tipo MULTI CORE (Envios de email, processamentos que podem serem feitos desordenados)            
-            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente).OrderBy(o => o.id).Take(500).ToList();
-            var arrTipos = arrFila.Select(s => s.tipo).Distinct();
+            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente && x.tipo == enTipoCarregar).OrderBy(o => o.id).Take(500).ToList();
 
-            foreach (var tipo in arrTipos)
+            //tenta achar uma lista em uso do mesmo tipo ou alguma vazia
+            Queue<FilaItem> arrFilaTipada = MyApp.filas.Where(f => f.Item1 == enTipoCarregar).Select(s => s.Item2).FirstOrDefault();
+            if (arrFilaTipada == null)
             {
-                //tenta achar uma lista em uso do mesmo tipo ou alguma vazia
-                Queue<FilaItem> arrFilaTipada = MyApp.filas.FirstOrDefault(f => f.Any(a => a.tipo == tipo) || f.Count == 0);
-                if (arrFilaTipada == null)
-                {
-                    arrFilaTipada = new Queue<FilaItem>();
-                    MyApp.filas.Add(arrFilaTipada);
-                }
-
-                arrFila.Where(x => x.tipo == tipo).ToList().ForEach(item => { arrFilaTipada.Enqueue(item); });
+                arrFilaTipada = new Queue<FilaItem>();
+                MyApp.filas.Add(new Tuple<enTipoFila, Queue<FilaItem>>(enTipoCarregar, arrFilaTipada));
             }
+
+            arrFila.ForEach(item => { arrFilaTipada.Enqueue(item); });
         }
 
 
-        public async void ProcessaFila()
+        public void HabilitaFilas()
         {
             do
             {
-                //Se a soma das qtde restantes das filas for zero ai carrega
-                if (MyApp.filas.Sum(x => x.Count()) == 0)
-                    await Task.Run(() => { Thread.Sleep(500); carregaFilaBanco(); });
-
-                if (MyApp.filas.Sum(x => x.Count()) == 0)
-                    continue;
-
-                var tasks = new List<Task>();
-
                 MyApp.filas.ForEach(fila =>
                 {
-                    if (fila.Count == 0)
+                    if (fila.Item2.Count == 0)
+                    {
+                        Thread.Sleep(500);
+                        carregaFilaBanco(fila.Item1);
+                    }
+
+                    if (fila.Item2.Count == 0)
                         return;
 
-                    int? intQtdeProcessador = arrTipoProcess.FirstOrDefault(f => f.Key == fila.First().tipo).Value;
-                    if (intQtdeProcessador == null || intQtdeProcessador == 0)
-                        intQtdeProcessador = 1;
-
-                    for (int i = 1; i <= intQtdeProcessador; i++)
-                    {
-                        if (intQtdeProcessador > 1)
-                            Thread.Sleep(50);
-
-                        tasks.Add(Task.Run(() => ProcessaItemsFila(ref fila)));
-                    }
+                    ProcessaFila(getProcessPorTipo(fila.Item1), fila.Item2);
                 });
 
-                await Task.WhenAll(tasks.ToArray());
+
             } while (true);
         }
 
 
 
 
-        public void ProcessaItemsFila(ref Queue<FilaItem> arrFila)
+        public async void ProcessaFila(int intQtdeProcess, Queue<FilaItem> arrFila)
+        {
+            do
+            {
+                if (arrFila.Count == 0)
+                    break;
+
+
+                if (intQtdeProcess == 1)
+                {
+                    Thread.Sleep(50);
+                    await Task.Run(() => ProcessaItems(ref arrFila));
+                }
+                else
+                {
+                    var tasks = new List<Task>();
+                    for (int i = 1; i <= intQtdeProcess; i++)
+                    {
+                        Thread.Sleep(50);
+                        tasks.Add(Task.Run(() => ProcessaItems(ref arrFila)));
+                    }
+                    await Task.WhenAll(tasks);
+                }
+
+                Thread.Sleep(50);
+
+            } while (true);
+        }
+
+
+
+        public void ProcessaItems(ref Queue<FilaItem> arrFila)
         {
             if (arrFila.Count == 0)
                 return;
+
 
             FilaItem itemProcessar = arrFila.Dequeue();
             if (itemProcessar == null)
@@ -186,11 +224,11 @@ namespace wpfQueue
                         break;
                 }
                 Thread.Sleep(150); //SIMULANDO ALGO DEMORADO
-
+                itemProcessar.qtdeTentativas++;
 
                 //simulando erros aleatórios
-                int x = new Random().Next(1, 5);
-                if (x == 4)
+                int x = new Random().Next(1, 4);
+                if (x == 3)
                 {
                     itemProcessar.status = enStatus.Erro;
                     throw new Exception("Erro");
@@ -198,11 +236,10 @@ namespace wpfQueue
 
                 //Atualiza no banco com o resultado do processamento.
                 MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().status = enStatus.Concluido;
+                MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().qtdeTentativas = itemProcessar.qtdeTentativas;
             }
             catch
             {
-                itemProcessar.qtdeTentativas++;
-
                 //Recolocando na fila
                 if (itemProcessar.qtdeTentativas <= 3)
                 {
@@ -212,6 +249,7 @@ namespace wpfQueue
                 {
                     //Atuliza banco informando que item falhou pois ja tentou 3x
                     MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().status = enStatus.Erro;
+                    MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().qtdeTentativas = itemProcessar.qtdeTentativas;
                 }
             }
         }
