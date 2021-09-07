@@ -19,8 +19,8 @@ namespace wpfQueue
         {
             InitializeComponent();
 
-            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo2, 5));
-            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo3, 5));
+            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo2, 3));
+            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo3, 3));
 
 
             tmAtulizaListas = new DispatcherTimer();
@@ -38,6 +38,7 @@ namespace wpfQueue
 
             Task.Run(() => HabilitaFilas());
         }
+
 
 
         private void btCarregaBanco_Click(object sender, RoutedEventArgs e)
@@ -81,6 +82,7 @@ namespace wpfQueue
             {
             }
         }
+
 
 
 
@@ -141,6 +143,9 @@ namespace wpfQueue
         }
 
 
+
+
+
         public void HabilitaFilas()
         {
             do
@@ -156,7 +161,7 @@ namespace wpfQueue
                     if (fila.Item2.Count == 0)
                         return;
 
-                    ProcessaFila(getProcessPorTipo(fila.Item1), fila.Item2);
+                    ProcessaFilas(getProcessPorTipo(fila.Item1), fila.Item2);
                 });
 
 
@@ -164,9 +169,7 @@ namespace wpfQueue
         }
 
 
-
-
-        public async void ProcessaFila(int intQtdeProcess, Queue<FilaItem> arrFila)
+        public async void ProcessaFilas(int intQtdeProcess, Queue<FilaItem> arrFila)
         {
             do
             {
@@ -184,7 +187,7 @@ namespace wpfQueue
                     var tasks = new List<Task>();
                     for (int i = 1; i <= intQtdeProcess; i++)
                     {
-                        Thread.Sleep(50);
+                        Thread.Sleep(300);
                         tasks.Add(Task.Run(() => ProcessaItems(ref arrFila)));
                     }
                     await Task.WhenAll(tasks);
@@ -194,7 +197,6 @@ namespace wpfQueue
 
             } while (true);
         }
-
 
 
         public void ProcessaItems(ref Queue<FilaItem> arrFila)
@@ -235,22 +237,25 @@ namespace wpfQueue
                 }
 
                 //Atualiza no banco com o resultado do processamento.
+                itemProcessar.status = enStatus.Concluido;
                 MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().status = enStatus.Concluido;
-                MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().qtdeTentativas = itemProcessar.qtdeTentativas;
             }
             catch
             {
-                //Recolocando na fila
                 if (itemProcessar.qtdeTentativas <= 3)
                 {
+                    //Recolocando na fila
                     arrFila.Enqueue(itemProcessar);
                 }
                 else
                 {
                     //Atuliza banco informando que item falhou pois ja tentou 3x
                     MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().status = enStatus.Erro;
-                    MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().qtdeTentativas = itemProcessar.qtdeTentativas;
                 }
+            }
+            finally
+            {
+                MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().qtdeTentativas = itemProcessar.qtdeTentativas;
             }
         }
     }
