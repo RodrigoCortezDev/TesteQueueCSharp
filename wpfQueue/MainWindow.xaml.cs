@@ -22,8 +22,8 @@ namespace wpfQueue
 
             //Seta a qtde de paralelismo de cada tipo de tarefa
             arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo1, 3));
-            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo2, 50));
-            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo3, 50));
+            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo2, 12));
+            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo3, 12));
 
 
             //tempo de atualização de telas
@@ -272,7 +272,7 @@ namespace wpfQueue
             {
                 //Se for menor que 3 mantem o status PENDENTE no banco ou seja nem mexe, para que seja recuperado na proxima passada.
                 //porem se ja tentou 3x ai seta o status de erro e não tanta mais
-                if (itemProcessar.qtdeTentativas > 3)
+                if (itemProcessar.qtdeTentativas > 2)
                 {
                     itemProcessar.status = enStatus.Erro;
                     MyApp.arrItemsProcessar.Where(x => x.id == itemProcessar.id).First().status = enStatus.Erro;
