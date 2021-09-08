@@ -5,7 +5,7 @@ namespace wpfQueue
 {
     public static class MyApp
     {
-        public static List<Tuple<enTipoFila,Queue<FilaItem>>> filas = new List<Tuple<enTipoFila, Queue<FilaItem>>>();
+        public static List<MyFila> filas = new List<MyFila>();
 
 
         public static List<FilaItem> arrItemsProcessar = new List<FilaItem>();
