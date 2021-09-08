@@ -18,6 +18,7 @@
 
         <Button Name="btCarregaBanco" Content="1 - simula Banco" ToolTip="Carrega 100 itens como se fosse bando de dados" Canvas.Left="8" Canvas.Top="195" Width="124" Click="btCarregaBanco_Click" Height="30"/>
         <Button x:Name="btExibeResult" Content="3 - Exibe banco" ToolTip="Apos processar a fila (2 lists de cima vazios) pode mandar ver o resultado." Canvas.Left="137" Canvas.Top="195" Width="134" Click="btExibeResult_Click" Height="30"/>
+        <CheckBox Name="chkSimulaErros" Click="chkSimulaErros_Click" Content="Simula erros no processo?" Canvas.Left="535" Canvas.Top="210"/>
 
 
 

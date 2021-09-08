@@ -8,16 +8,16 @@ namespace wpfQueue
 {
     public class MyFila        
     {
-        public MyFila(enTipoFila _tipoFila, Queue<FilaItem> _fila, bool _IsRegarregado)
+        public MyFila(enTipoFila _tipoFila, Queue<FilaItem> _fila, bool _IsPodeProcessar)
         {
             tipoFila = _tipoFila;
             fila = _fila;
-            IsNecessitaProcessar = _IsRegarregado;
+            IsPodeProcessar = _IsPodeProcessar;
         }
 
 
         public enTipoFila tipoFila { get; set; }
         public Queue<FilaItem> fila { get; set; }
-        public bool IsNecessitaProcessar { get; set; }
+        public bool IsPodeProcessar { get; set; }
     }
 }
