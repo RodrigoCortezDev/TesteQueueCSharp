@@ -21,7 +21,7 @@ namespace wpfQueue
             InitializeComponent();
 
             //Seta a qtde de paralelismo de cada tipo de tarefa
-            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo1, 3));
+            arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo1, 1));
             arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo2, 12));
             arrTipoProcess.Add(new KeyValuePair<enTipoFila, int>(enTipoFila.tipo3, 12));
 
@@ -173,7 +173,6 @@ namespace wpfQueue
             {
                 Thread.Sleep(500);
 
-
                 MyApp.filas.ForEach(fila => 
                 {
                     if (fila.fila.Count == 0)
@@ -253,7 +252,7 @@ namespace wpfQueue
                     default:
                         break;
                 }
-                Thread.Sleep(150); //SIMULANDO ALGO DEMORADO
+                Thread.Sleep(new Random().Next(1, 500)); //SIMULANDO ALGO DEMORADO
 
                 //simulando erros aleatórios
                 if (IsValidaErro)
