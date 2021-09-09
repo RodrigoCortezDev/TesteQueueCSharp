@@ -46,7 +46,7 @@ namespace wpfQueue
             }
             
             //Inicia as escutas das filas
-            Task.Run(() => HabilitaFilas());
+            Task.Run(() => HabilitaCarregaFilas());
         }
 
 
@@ -146,7 +146,7 @@ namespace wpfQueue
         public void carregaFilaBanco(enTipoFila enTipoCarregar)
         {
             //Carrega items do "banco" (neste exemplo o banco seria a listagem no MyApp
-            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente && x.tipo == enTipoCarregar).OrderBy(o => o.id).Take(500).ToList();
+            var arrFila = MyApp.arrItemsProcessar.Where(x => x.status == enStatus.Pendente && x.tipo == enTipoCarregar).OrderBy(o => o.id).Take(300).ToList();
 
             //Pega a lista do mesmo tipo para preenche-la
             Queue<FilaItem> arrFilaTipada = MyApp.filas.Where(f => f.tipoFila == enTipoCarregar).Select(s => s.fila).FirstOrDefault();
@@ -164,14 +164,14 @@ namespace wpfQueue
 
 
 
-        public void HabilitaFilas()
+        public void HabilitaCarregaFilas()
         {
             //Metodo que inicia a escuta das filas
             //Toda fila tem uma variavel "IsPodeProcessar" que serve para dizer que a fila está liberada, ja processou o lote.
             //Se a fila está liberada e não restou nada (validação feita para evitar concorrencias) ai pega mais do banco
             do
             {
-                Thread.Sleep(500);
+                Thread.Sleep(1000);
 
                 MyApp.filas.ForEach(fila => 
                 {
@@ -184,7 +184,6 @@ namespace wpfQueue
 
             } while (true);
         }
-
 
         public void ProcessaFilas(int intQtdeProcess, ref MyFila myFila)
         {
@@ -214,7 +213,6 @@ namespace wpfQueue
                 myFila.IsPodeProcessar = true;
             }
         }
-
 
         public void ProcessaItems(FilaItem itemProcessar)
         {
@@ -289,7 +287,5 @@ namespace wpfQueue
                 arrProcessamentos.Add(itemProcessar.id);
             }
         }
-
-        
     }
 }
